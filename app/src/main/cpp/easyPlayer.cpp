@@ -148,6 +148,7 @@ void Decoder::init(AVCodecContext *ctx) {
 
 
 void Decoder::start_decode_thread() {
+    av_log(NULL, AV_LOG_DEBUG, "start_decode_thread.\n");
     pkt_queue.set_abort(0);
     std::thread t(&Decoder::decode, this);
     t.detach();
@@ -253,35 +254,34 @@ void EasyPlayer::init(const std::string input_filename) {
 
 void EasyPlayer::read() {
     int err, i, ret;
-    av_log(NULL, AV_LOG_INFO, "start read thread.\n");
+    av_log(NULL, AV_LOG_INFO, "EasyPlayer, start read thread.\n");
     AVPacket *pkt = (AVPacket *)av_malloc(sizeof(AVPacket));
     if (pkt == NULL) {
-        av_log(NULL, AV_LOG_FATAL, "Could not allocate avPacket.\n");
+        av_log(NULL, AV_LOG_FATAL, "EasyPlayer, Could not allocate avPacket.\n");
         return;
     }
-    av_log(NULL, AV_LOG_INFO, "start read thread!!!!.\n");
+    av_log(NULL, AV_LOG_INFO, "EasyPlayer, start read thread!!!!.\n");
     int64_t stream_start_time;
     int64_t pkt_ts;
     int pkt_in_play_range = 0;
     int st_index[AVMEDIA_TYPE_NB];
     memset(st_index, -1, sizeof(st_index));
-    av_log(NULL, AV_LOG_INFO, "start avformat_alloc_context.\n");
+    av_log(NULL, AV_LOG_INFO, "EasyPlayer, start avformat_alloc_context.\n");
     ic = avformat_alloc_context();
     if (!ic) {
-        av_log(NULL, AV_LOG_FATAL, "Could not allocate context.\n");
+        av_log(NULL, AV_LOG_FATAL, "EasyPlayer, Could not allocate context.\n");
         return;
     }
-    av_log(NULL, AV_LOG_INFO, "start avformat_open_input. file path %s\n", filename);
+    av_log(NULL, AV_LOG_INFO, "EasyPlayer, start avformat_open_input. file path %s\n", filename);
     err = avformat_open_input(&ic, filename, NULL, NULL);
     if (err < 0) {
-        av_log(NULL, AV_LOG_FATAL, "Could not open input file.\n");
+        av_log(NULL, AV_LOG_FATAL, "EasyPlayer, Could not open input file.\n");
         release();
     }
-    this->ic = ic;
     err = avformat_find_stream_info(ic, NULL);
     if (err < 0) {
         av_log(NULL, AV_LOG_WARNING,
-               "%s: could not find codec parameters\n", filename);
+               "%s: EasyPlayer, could not find codec parameters\n", filename);
         release();
     }
     realtime = is_realtime();
@@ -294,15 +294,15 @@ void EasyPlayer::read() {
         }
     }
     if (st_index[AVMEDIA_TYPE_VIDEO] >= 0) {
-        av_log(NULL, AV_LOG_INFO, "start open video component at id %d.\n",st_index[AVMEDIA_TYPE_VIDEO]);
+        av_log(NULL, AV_LOG_INFO, "EasyPlayer, start open video component at id %d.\n",st_index[AVMEDIA_TYPE_VIDEO]);
         stream_component_open(st_index[AVMEDIA_TYPE_VIDEO]);
     }
     if (st_index[AVMEDIA_TYPE_AUDIO] >= 0) {
-        av_log(NULL, AV_LOG_INFO, "start open audio component at id %d.\n",st_index[AVMEDIA_TYPE_AUDIO]);
+        av_log(NULL, AV_LOG_INFO, "EasyPlayer, start open audio component at id %d.\n",st_index[AVMEDIA_TYPE_AUDIO]);
         stream_component_open(st_index[AVMEDIA_TYPE_AUDIO]);
     }
     if (video_stream < 0 && audio_stream < 0) {
-        av_log(NULL, AV_LOG_FATAL, "Failed to open file '%s' or configure filtergraph\n", filename);
+        av_log(NULL, AV_LOG_FATAL, "EasyPlayer, Failed to open file '%s' or configure filtergraph\n", filename);
         release();
     }
     while(true) {
@@ -310,14 +310,16 @@ void EasyPlayer::read() {
             break;
         if (paused)
             av_read_pause(ic);
-        else
+        else {
+            av_log(NULL, AV_LOG_DEBUG, "EasyPlayer, read(), av_read_play()\n");
             av_read_play(ic);
+        }
         if (seek_req) {
-
+            av_log(NULL, AV_LOG_DEBUG, "EasyPlayer, av_seek_frame, seek_pos=%d\n", seek_pos);
             ret = av_seek_frame(ic, -1, seek_pos * AV_TIME_BASE, 0);
             if (ret < 0) {
                 av_log(NULL, AV_LOG_ERROR,
-                       "%s: error while seeking\n", filename);
+                       "%s: EasyPlayer, error while seeking\n", filename);
             } else {
                 if (audio_stream >= 0) {
                     auddec.pkt_queue.flush();
@@ -332,7 +334,9 @@ void EasyPlayer::read() {
 //            if (paused)
 //                step_to_next_frame(is);
         }
+        av_log(NULL, AV_LOG_DEBUG, "EasyPlayer, before av_read_frame");
         ret = av_read_frame(ic, pkt);
+        av_log(NULL, AV_LOG_DEBUG, "EasyPlayer, after av_read_frame, ret=%d", ret);
         if (ret < 0) {
             if ((ret == AVERROR_EOF || avio_feof(ic->pb)) && !eof) {
                 if (video_stream >= 0)
@@ -382,6 +386,7 @@ bool EasyPlayer::is_realtime() {
 
 
 int EasyPlayer::stream_component_open(int stream_index) {
+    av_log(NULL, AV_LOG_DEBUG, "stream_component_open, stream_index=%d.\n", stream_index);
     AVCodecContext *avctx;
     AVCodec *codec;
     int sample_rate, nb_channels;
@@ -408,6 +413,7 @@ int EasyPlayer::stream_component_open(int stream_index) {
         avcodec_free_context(&avctx);
         return ret;
     }
+    av_log(NULL, AV_LOG_DEBUG, "stream_component_open, avctx->codec_type=%d \n", avctx->codec_type);
     switch (avctx->codec_type) {
         case AVMEDIA_TYPE_AUDIO:
             swr_ctx = swr_alloc();
@@ -546,6 +552,7 @@ void EasyPlayer::release() {
 }
 
 void EasyPlayer::wait_paused() {
+    av_log(NULL, AV_LOG_DEBUG, "EasyPlayer::wait_paused()\n");
     std::unique_lock<std::mutex> lock(mutex);
     pause_condition.wait(lock, [this] {
         return !this->paused;

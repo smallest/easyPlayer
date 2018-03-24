@@ -3,8 +3,9 @@
 //
 
 #include "include/opensles.h"
+#include <android/log.h>
 
-
+#define LOGD(format, ...)  __android_log_print(ANDROID_LOG_INFO,  "opensles", format, ##__VA_ARGS__)
 SLObjectItf engineObject = NULL;
 SLEngineItf engineEngine;
 EasyPlayer *mEasyPlayer;
@@ -41,6 +42,7 @@ const int outputBufferSize = 8196;
 
 
 void createAudioEngine() {
+    LOGD("createAudioEngine().\n");
     SLresult result;
 
     // create engine
@@ -87,6 +89,7 @@ void createAudioEngine() {
 
 
 void createBufferQueueAudioPlayer(int sampleRate, int channel) {
+    LOGD("createBufferQueueAudioPlayer(), sampleRate=%d, channel=%d.\n", sampleRate, channel);
     SLresult result;
     if (sampleRate >= 0 ) {
         bqPlayerSampleRate = sampleRate * 1000;
@@ -180,6 +183,7 @@ void createBufferQueueAudioPlayer(int sampleRate, int channel) {
 
 
 void audioStart() {
+    LOGD("audioStart()");
     bqPlayerCallback(bqPlayerBufferQueue, NULL);
 }
 
@@ -187,6 +191,7 @@ void audioStart() {
 // this callback handler is called every time a buffer finishes playing
 void bqPlayerCallback(SLAndroidSimpleBufferQueueItf bq, void *context)
 {
+    LOGD("bqPlayerCallback().\n");
     assert(bq == bqPlayerBufferQueue);
     assert(NULL == context);
     if (mEasyPlayer->get_paused()) {
@@ -223,6 +228,7 @@ void releaseResampleBuf(void) {
 }
 
 void init(EasyPlayer *player) {
+    LOGD("Java_cn_jx_easyplayerlib_player_EasyMediaPlayer, setDataSource.\n");
     mEasyPlayer = player;
     outputBuffer = (uint8_t *) malloc(sizeof(uint8_t) * outputBufferSize);
 }

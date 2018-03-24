@@ -17,9 +17,11 @@
 package cn.jx.easyplayerlib.player;
 
 
+import cn.jx.easyplayerlib.util.EasyLog;
 
 @SuppressWarnings("WeakerAccess")
 public abstract class AbstractMediaPlayer implements IMediaPlayer {
+    private static final String TAG = AbstractMediaPlayer.class.getSimpleName();
     private OnPreparedListener mOnPreparedListener;
     private OnCompletionListener mOnCompletionListener;
     private OnBufferingUpdateListener mOnBufferingUpdateListener;
@@ -29,6 +31,7 @@ public abstract class AbstractMediaPlayer implements IMediaPlayer {
     private OnInfoListener mOnInfoListener;
 
     public final void setOnPreparedListener(OnPreparedListener listener) {
+        EasyLog.d(TAG, "setOnPreparedListener()");
         mOnPreparedListener = listener;
     }
 
@@ -47,6 +50,7 @@ public abstract class AbstractMediaPlayer implements IMediaPlayer {
 
     public final void setOnVideoSizeChangedListener(
             OnVideoSizeChangedListener listener) {
+        EasyLog.d(TAG, "setOnVideoSizeChangedListener()");
         mOnVideoSizeChangedListener = listener;
     }
 

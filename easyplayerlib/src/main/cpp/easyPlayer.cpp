@@ -142,12 +142,14 @@ size_t FrameQueue::get_size() {
 
 
 void Decoder::init(AVCodecContext *ctx) {
+    av_log(NULL, AV_LOG_DEBUG, "Decoder::init.\n");
     avctx = ctx;
 
 }
 
 
 void Decoder::start_decode_thread() {
+    av_log(NULL, AV_LOG_DEBUG, "Decoder::start_decode_thread.\n");
     pkt_queue.set_abort(0);
     std::thread t(&Decoder::decode, this);
     t.detach();
@@ -166,7 +168,7 @@ int VideoDecoder::get_width(){
 
 
 void VideoDecoder::decode() {
-
+    av_log(NULL, AV_LOG_DEBUG, "VideoDecoder::decode().\n");
     for (;;) {
         if (pkt_queue.get_abort()) break;
         int got_picture;
@@ -178,6 +180,7 @@ void VideoDecoder::decode() {
 
 
 int AudioDecoder::decoder_decode_frame() {
+    av_log(NULL, AV_LOG_DEBUG, "AudioDecoder::decoder_decode_frame().\n");
     int ret;
 
     do {
@@ -213,7 +216,7 @@ int AudioDecoder::decoder_decode_frame() {
 
 
 void AudioDecoder::decode() {
-
+    av_log(NULL, AV_LOG_DEBUG, "AudioDecoder::decode().\n");
     AVFrame *frame = av_frame_alloc();
     for (;;) {
         if (pkt_queue.get_abort()) break;
@@ -237,7 +240,7 @@ int AudioDecoder::get_sample_rate(){
 
 void EasyPlayer::init(const std::string input_filename) {
     if (input_filename.empty()) {
-        av_log(nullptr, AV_LOG_FATAL, "An input file must be specified\n");
+        av_log(nullptr, AV_LOG_FATAL, "EasyPlayer, An input file must be specified\n");
         return;
     }
     av_log(NULL, AV_LOG_INFO, "Easyplayer init on file %s.\n", input_filename.c_str());
@@ -253,10 +256,10 @@ void EasyPlayer::init(const std::string input_filename) {
 
 void EasyPlayer::read() {
     int err, i, ret;
-    av_log(NULL, AV_LOG_INFO, "start read thread.\n");
+    av_log(NULL, AV_LOG_INFO, "EasyPlayer::read().\n");
     AVPacket *pkt = (AVPacket *)av_malloc(sizeof(AVPacket));
     if (pkt == NULL) {
-        av_log(NULL, AV_LOG_FATAL, "Could not allocate avPacket.\n");
+        av_log(NULL, AV_LOG_FATAL, "EasyPlayer, Could not allocate avPacket.\n");
         return;
     }
     int64_t stream_start_time;
@@ -266,19 +269,19 @@ void EasyPlayer::read() {
     memset(st_index, -1, sizeof(st_index));
     ic = avformat_alloc_context();
     if (!ic) {
-        av_log(NULL, AV_LOG_FATAL, "Could not allocate context.\n");
+        av_log(NULL, AV_LOG_FATAL, "EasyPlayer, Could not allocate context.\n");
         return;
     }
     err = avformat_open_input(&ic, filename, NULL, NULL);
     if (err < 0) {
-        av_log(NULL, AV_LOG_FATAL, "Could not open input file.\n");
+        av_log(NULL, AV_LOG_FATAL, "EasyPlayer, Could not open input file.\n");
         release();
     }
     this->ic = ic;
     err = avformat_find_stream_info(ic, NULL);
     if (err < 0) {
         av_log(NULL, AV_LOG_WARNING,
-               "%s: could not find codec parameters\n", filename);
+               "%s: EasyPlayer, could not find codec parameters\n", filename);
         release();
     }
     realtime = is_realtime();
@@ -291,21 +294,22 @@ void EasyPlayer::read() {
         }
     }
     if (st_index[AVMEDIA_TYPE_VIDEO] >= 0) {
-        av_log(NULL, AV_LOG_INFO, "start open video component at id %d.\n",st_index[AVMEDIA_TYPE_VIDEO]);
+        av_log(NULL, AV_LOG_INFO, "EasyPlayer, start open video component at id %d.\n",st_index[AVMEDIA_TYPE_VIDEO]);
         stream_component_open(st_index[AVMEDIA_TYPE_VIDEO]);
     }
     if (st_index[AVMEDIA_TYPE_AUDIO] >= 0) {
-        av_log(NULL, AV_LOG_INFO, "start open audio component at id %d.\n",st_index[AVMEDIA_TYPE_AUDIO]);
+        av_log(NULL, AV_LOG_INFO, "EasyPlayer, start open audio component at id %d.\n",st_index[AVMEDIA_TYPE_AUDIO]);
         stream_component_open(st_index[AVMEDIA_TYPE_AUDIO]);
     }
     if (video_stream < 0 && audio_stream < 0) {
-        av_log(NULL, AV_LOG_FATAL, "Failed to open file '%s' or configure filtergraph\n", filename);
+        av_log(NULL, AV_LOG_FATAL, "EasyPlayer, Failed to open file '%s' or configure filtergraph\n", filename);
         release();
     }
     on_state_change(PlayerState::READY);
     if (event_listener != nullptr) {
         event_listener(MEDIA_PREPARED, 0, 0);
         if (video_stream >= 0) {
+            av_log(NULL, AV_LOG_DEBUG, "EasyPlayer, event_listener, viddec.get_width()=%d, viddec.get_height()=%d", viddec.get_width(), viddec.get_height());
             event_listener(MEDIA_SET_VIDEO_SIZE, viddec.get_width(), viddec.get_height());
         }
     }
@@ -321,7 +325,7 @@ void EasyPlayer::read() {
             ret = av_seek_frame(ic, -1, seek_pos * AV_TIME_BASE, 0);
             if (ret < 0) {
                 av_log(NULL, AV_LOG_ERROR,
-                       "%s: error while seeking\n", filename);
+                       "%s: EasyPlayer, error while seeking\n", filename);
             } else {
                 if (audio_stream >= 0) {
                     auddec.pkt_queue.flush();
@@ -387,6 +391,7 @@ bool EasyPlayer::is_realtime() {
 
 
 int EasyPlayer::stream_component_open(int stream_index) {
+    av_log(NULL, AV_LOG_DEBUG, "EasyPlayer, stream_component_open, stream_index=%d\n", stream_index);
     AVCodecContext *avctx;
     AVCodec *codec;
     int sample_rate, nb_channels;
@@ -409,7 +414,7 @@ int EasyPlayer::stream_component_open(int stream_index) {
     ic->streams[stream_index]->discard = AVDISCARD_DEFAULT;
     ret = avcodec_open2(avctx, codec, NULL);
     if (ret < 0) {
-        av_log(NULL, AV_LOG_FATAL, "Fail to open codec on stream %d\n", stream_index);
+        av_log(NULL, AV_LOG_FATAL, "EasyPlayer, Fail to open codec on stream %d\n", stream_index);
         avcodec_free_context(&avctx);
         return ret;
     }
@@ -422,7 +427,7 @@ int EasyPlayer::stream_component_open(int stream_index) {
                                          0, NULL);
             if (!swr_ctx || swr_init(swr_ctx) < 0) {
                 av_log(NULL, AV_LOG_ERROR,
-                       "Cannot create sample rate converter for conversion channels!\n");
+                       "EasyPlayer, Cannot create sample rate converter for conversion channels!\n");
                 swr_free(&swr_ctx);
                 return -1;
             }
@@ -450,6 +455,7 @@ int EasyPlayer::stream_component_open(int stream_index) {
 
 
 int VideoDecoder::decoder_decode_frame() {
+    av_log(NULL, AV_LOG_DEBUG, "EasyPlayer, decoder_decode_frame().\n");
     int ret;
 
     do {
@@ -459,21 +465,21 @@ int VideoDecoder::decoder_decode_frame() {
         if (!packet_pending || pkt_queue.get_serial() != pkt_serial) {
             if (pkt_queue.get_packet(&pkt) < 0) return -1;
             if (pkt.data == NULL) {
-                av_log(NULL, AV_LOG_FATAL, "reach eof.\n");
+                av_log(NULL, AV_LOG_FATAL, "EasyPlayer, reach eof.\n");
                 return -1;
             }
 
         }
         ret = avcodec_send_packet(avctx, &pkt);
         if (ret < 0 && ret != AVERROR(EAGAIN) && ret != AVERROR_EOF) {
-            av_log(NULL, AV_LOG_FATAL, "video avcodec_send_packet error %d.\n", ret);
+            av_log(NULL, AV_LOG_FATAL, "EasyPlayer, video avcodec_send_packet error %d.\n", ret);
             break;
         }
 
         AVFrame *frame = av_frame_alloc();
         ret = avcodec_receive_frame(avctx, frame);
         if (ret < 0 && ret != AVERROR_EOF) {
-            av_log(NULL, AV_LOG_FATAL, "video avcodec_receive_frame error %d.\n", ret);
+            av_log(NULL, AV_LOG_FATAL, "EasyPlayer, video avcodec_receive_frame error %d.\n", ret);
             break;
         }
         frame->pts = av_frame_get_best_effort_timestamp(frame);
@@ -497,6 +503,7 @@ bool EasyPlayer::has_video() {
 
 
 bool EasyPlayer::get_img_frame(AVFrame *frame) {
+    av_log(NULL, AV_LOG_FATAL, "EasyPlayer, get_img_frame frame=%p.\n", frame);
     if (frame == nullptr) return false;
     auto av_frame = viddec.frame_queue.get_frame();
     sws_scale(img_convert_ctx, (const uint8_t* const*)av_frame->frame->data, av_frame->frame->linesize, 0, viddec.avctx->height,
@@ -550,6 +557,7 @@ void EasyPlayer::release() {
 }
 
 void EasyPlayer::wait_paused() {
+    av_log(NULL, AV_LOG_DEBUG, "EasyPlayer::wait_paused()\n");
     std::unique_lock<std::mutex> lock(mutex);
     pause_condition.wait(lock, [this] {
         return !this->paused;
@@ -570,13 +578,14 @@ void EasyPlayer::set_data_source(const std::string input_filename) {
         av_log(nullptr, AV_LOG_FATAL, "An input file must be specified\n");
         return;
     }
-    av_log(NULL, AV_LOG_INFO, "Easyplayer init on file %s.\n", input_filename.c_str());
+    av_log(NULL, AV_LOG_INFO, "set_data_source input_filename=%s.\n", input_filename.c_str());
     filename = av_strdup(input_filename.c_str());
 }
 
 
 
 void EasyPlayer::prepare() {
+    av_log(NULL, AV_LOG_DEBUG, "EasyPlayer::prepare().\n");
     av_register_all();
     avformat_network_init();
     std::thread read_thread(&EasyPlayer::read, this);

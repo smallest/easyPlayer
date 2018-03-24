@@ -43,12 +43,13 @@ extern "C"
 void
 Java_cn_jx_easyplayerlib_player_EasyMediaPlayer__1nativeInit
         (JNIEnv *env, jobject obj) {
+    LOGD("Java_cn_jx_easyplayerlib_player_EasyMediaPlayer, nativeInit.\n");
     gObj = env->NewGlobalRef(obj);
     if (gObj == NULL) return;
     jclass clazz = env->GetObjectClass(obj);
     if (NULL == gPostEventFromNative){
         gPostEventFromNative = env->GetMethodID(clazz,"postEventFromNative","(III)V");
-        if (NULL == gOnResolutionChange){
+        if (NULL == gPostEventFromNative){
             LOGD("Couldn't find postEventFromNative method.\n");
         }
     }
@@ -58,8 +59,12 @@ Java_cn_jx_easyplayerlib_player_EasyMediaPlayer__1nativeInit
 
 
 void showPic() {
+    LOGD("showPic().\n");
     mPlayer->wait_state(PlayerState::READY);
-    if (!mPlayer->has_video()) return;
+    if (!mPlayer->has_video()) {
+        LOGD("!mPlayer->has_video(), return.\n");
+        return;
+    }
     if (0 > ANativeWindow_setBuffersGeometry(nativeWindow, mPlayer->viddec.get_width(), mPlayer->viddec.get_height(), WINDOW_FORMAT_RGBA_8888)){
         LOGD("Couldn't set buffers geometry.\n");
         ANativeWindow_release(nativeWindow);
@@ -92,6 +97,7 @@ void showPic() {
 }
 
 void playAudio() {
+    LOGD("playAudio().\n");
     mPlayer->wait_state(PlayerState::READY);
     createAudioEngine();
     createBufferQueueAudioPlayer(mPlayer->auddec.get_sample_rate(), mPlayer->auddec.get_channels());
@@ -101,6 +107,7 @@ void playAudio() {
 void listener(int what, int arg1, int arg2) {
     JNIEnv *env = NULL;
     if (0 == gVm->AttachCurrentThread(&env, NULL)) {
+        av_log(NULL, AV_LOG_DEBUG, "listener(what=%d, arg1=%d, arg2=%d)\n", what, arg1, arg2);
         env->CallVoidMethod(gObj, gPostEventFromNative, what, arg1, arg2);
         gVm->DetachCurrentThread();
     }
@@ -196,6 +203,7 @@ extern "C"
 void
 Java_cn_jx_easyplayerlib_player_EasyMediaPlayer__1setDataSource
         (JNIEnv *env, jobject obj, jstring path) {
+    LOGD("Java_cn_jx_easyplayerlib_player_EasyMediaPlayer, setDataSource,path=%s.\n", env->GetStringUTFChars(path, NULL));
     mPlayer = new EasyPlayer();
     char inputStr[500] = {0};
     sprintf(inputStr, "%s", env->GetStringUTFChars(path, NULL));
@@ -210,7 +218,9 @@ extern "C"
 void
 Java_cn_jx_easyplayerlib_player_EasyMediaPlayer__1setVideoSurface
         (JNIEnv *env, jobject obj, jobject surface) {
+    LOGD("Java_cn_jx_easyplayerlib_player_EasyMediaPlayer, setVideoSurface.\n");
     nativeWindow = ANativeWindow_fromSurface(env, surface);
+    LOGD("setVideoSurface. nativeWindow=%p", nativeWindow);
     if (0 == nativeWindow){
         LOGD("Couldn't get native window from surface.\n");
         return;
@@ -231,6 +241,7 @@ extern "C"
 void
 Java_cn_jx_easyplayerlib_player_EasyMediaPlayer__1start
         (JNIEnv *env, jobject obj) {
+    LOGD("Java_cn_jx_easyplayerlib_player_EasyMediaPlayer, start.\n");
     mPlayer->play();
     std::thread videoThread(showPic);
     std::thread audioThread(playAudio);

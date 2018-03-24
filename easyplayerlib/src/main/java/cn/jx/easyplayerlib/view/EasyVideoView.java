@@ -81,6 +81,7 @@ public class EasyVideoView extends FrameLayout implements MediaController.MediaP
      * @param path the path of the video.
      */
     public void setVideoPath(String path) {
+        EasyLog.d(TAG, "setVideoPath, path="+path);
         this.mUri = path;
         openVideo();
     }
@@ -175,6 +176,7 @@ public class EasyVideoView extends FrameLayout implements MediaController.MediaP
      */
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
+        EasyLog.d(TAG, "surfaceCreated()");
         mSurfaceHolder = holder;
         if (mMediaPlayer == null) {
             openVideo();
@@ -223,6 +225,7 @@ public class EasyVideoView extends FrameLayout implements MediaController.MediaP
 
 
     private void openVideo() {
+        EasyLog.d(TAG, "openVideo()");
         if (mUri == null || mSurfaceHolder == null) {
             return;
         }
@@ -240,13 +243,13 @@ public class EasyVideoView extends FrameLayout implements MediaController.MediaP
                     mCurrentState = STATE_PREPARING;
                 }
             }).start();
-            if (mMediaController == null) {
-                mMediaController = new MediaController(getContext());
-                mMediaController.setMediaPlayer(this);
-                mMediaController.setAnchorView(this);
-                mMediaController.setEnabled(true);
-                mMediaController.show();
-            }
+//            if (mMediaController == null) {
+//                mMediaController = new MediaController(getContext());
+//                mMediaController.setMediaPlayer(this);
+//                mMediaController.setAnchorView(this);
+//                mMediaController.setEnabled(true);
+//                mMediaController.show();
+//            }
 
         }catch (Exception e) {
 
@@ -276,6 +279,7 @@ public class EasyVideoView extends FrameLayout implements MediaController.MediaP
     IMediaPlayer.OnVideoSizeChangedListener mSizeChangedListener =
             new IMediaPlayer.OnVideoSizeChangedListener() {
                 public void onVideoSizeChanged(IMediaPlayer mp, int width, int height) {
+                    EasyLog.i(TAG, "onVideoSizeChanged, with="+width + "height="+height);
                     mVideoWidth = mp.getVideoWidth();
                     mVideoHeight = mp.getVideoHeight();
 //                    mSurfaceHolder.setFixedSize(mVideoWidth, mVideoHeight);
@@ -293,6 +297,7 @@ public class EasyVideoView extends FrameLayout implements MediaController.MediaP
 
     IMediaPlayer.OnPreparedListener mPreparedListener = new IMediaPlayer.OnPreparedListener() {
         public void onPrepared(IMediaPlayer mp) {
+            EasyLog.i(TAG, "onPrepared");
             mCurrentState = STATE_PREPARED;
         }
     };

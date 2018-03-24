@@ -65,6 +65,7 @@ public class EasyMediaPlayer extends AbstractMediaPlayer {
     private native void _nativeInit();
 
     public EasyMediaPlayer() {
+        EasyLog.d(TAG, "EasyMediaPlayer()");
         _nativeInit();
     }
 
@@ -88,6 +89,7 @@ public class EasyMediaPlayer extends AbstractMediaPlayer {
      */
     @Override
     public void setDataSource(String path) throws IOException, IllegalArgumentException, SecurityException, IllegalStateException {
+        EasyLog.d(TAG, "setDataSource(), path=" + path);
         _setDataSource(path);
     }
 
@@ -142,6 +144,7 @@ public class EasyMediaPlayer extends AbstractMediaPlayer {
      */
     @Override
     public void setSurface(Surface surface) {
+        EasyLog.d(TAG, "setSurface()");
         if (mScreenOnWhilePlaying && surface != null) {
             EasyLog.w(TAG,
                     "setScreenOnWhilePlaying(true) is ineffective for Surface");
@@ -160,11 +163,13 @@ public class EasyMediaPlayer extends AbstractMediaPlayer {
 
     @Override
     public void prepareAsync() throws IllegalStateException {
+        EasyLog.d(TAG, "prepareAsync()");
         _prepareAsync();
     }
 
     @Override
     public void start() throws IllegalStateException {
+        EasyLog.d(TAG, "start()");
         _start();
     }
 
